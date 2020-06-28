@@ -246,10 +246,10 @@ clutter_offscreen_effect_pre_paint (ClutterEffect       *effect,
   local_offset = GRAPHENE_POINT3D_INIT (0.0f, 0.0f, 0.0f);
 
   if (!clutter_actor_meta_get_enabled (CLUTTER_ACTOR_META (effect)))
-    return FALSE;
+    goto fail;
 
   if (priv->actor == NULL)
-    return FALSE;
+    goto fail;
 
   stage = _clutter_actor_get_stage_internal (priv->actor);
   clutter_actor_get_size (stage, &stage_width, &stage_height);
@@ -294,7 +294,7 @@ clutter_offscreen_effect_pre_paint (ClutterEffect       *effect,
 
   /* First assert that the framebuffer is the right size... */
   if (!update_fbo (effect, target_width, target_height, resource_scale))
-    return FALSE;
+    goto fail;
 
   framebuffer = clutter_paint_context_get_framebuffer (paint_context);
   cogl_framebuffer_get_modelview_matrix (framebuffer, &old_modelview);
@@ -361,6 +361,10 @@ clutter_offscreen_effect_pre_paint (ClutterEffect       *effect,
   clutter_actor_set_opacity_override (priv->actor, 0xff);
 
   return TRUE;
+
+fail:
+  cogl_clear_object (&priv->offscreen);
+  return FALSE;
 }
 
 static void
@@ -488,8 +492,6 @@ clutter_offscreen_effect_paint (ClutterEffect           *effect,
 
       if (pre_paint_succeeded)
         effect_class->post_paint (effect, paint_context);
-      else
-        g_clear_pointer (&priv->offscreen, cogl_object_unref);
     }
   else
     clutter_offscreen_effect_paint_texture (self, paint_context);
