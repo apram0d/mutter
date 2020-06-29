@@ -1360,10 +1360,6 @@ clutter_layer_node_pre_draw (ClutterPaintNode *node,
   if (lnode->offscreen == NULL)
     return FALSE;
 
-  /* if no geometry was submitted for this node then we simply ignore it */
-  if (node->operations == NULL)
-    return FALSE;
-
   if (lnode->update_modelview)
     {
       CoglFramebuffer *framebuffer;
@@ -1413,6 +1409,10 @@ clutter_layer_node_post_draw (ClutterPaintNode    *node,
   /* switch to the previous framebuffer */
   cogl_framebuffer_pop_matrix (lnode->offscreen);
   clutter_paint_context_pop_framebuffer (paint_context);
+
+  /* if no geometry was submitted for this node then we simply ignore it */
+  if (node->operations == NULL)
+    return;
 
   fb = clutter_paint_context_get_framebuffer (paint_context);
 
