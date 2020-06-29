@@ -1338,6 +1338,7 @@ struct _ClutterLayerNode
   CoglFramebuffer *offscreen;
 
   guint8 opacity;
+  gboolean update_modelview;
 };
 
 struct _ClutterLayerNodeClass
@@ -1352,8 +1353,6 @@ clutter_layer_node_pre_draw (ClutterPaintNode *node,
                              ClutterPaintContext *paint_context)
 {
   ClutterLayerNode *lnode = (ClutterLayerNode *) node;
-  CoglFramebuffer *framebuffer;
-  CoglMatrix matrix;
 
   /* if we were unable to create an offscreen buffer for this node, then
    * we simply ignore it
@@ -1365,24 +1364,29 @@ clutter_layer_node_pre_draw (ClutterPaintNode *node,
   if (node->operations == NULL)
     return FALSE;
 
-  /* copy the same modelview from the current framebuffer to the one we
-   * are going to use
-   */
-  framebuffer = clutter_paint_context_get_framebuffer (paint_context);
-  cogl_framebuffer_get_modelview_matrix (framebuffer, &matrix);
+  if (lnode->update_modelview)
+    {
+      CoglFramebuffer *framebuffer;
+      CoglMatrix matrix;
+
+      /* copy the same modelview from the current framebuffer to the one we
+       * are going to use
+       */
+      framebuffer = clutter_paint_context_get_framebuffer (paint_context);
+      cogl_framebuffer_get_modelview_matrix (framebuffer, &matrix);
+      cogl_framebuffer_set_modelview_matrix (lnode->offscreen, &matrix);
+
+      cogl_framebuffer_set_viewport (lnode->offscreen,
+                                     lnode->viewport.x,
+                                     lnode->viewport.y,
+                                     lnode->viewport.width,
+                                     lnode->viewport.height);
+
+      cogl_framebuffer_set_projection_matrix (lnode->offscreen,
+                                              &lnode->projection);
+    }
 
   clutter_paint_context_push_framebuffer (paint_context, lnode->offscreen);
-
-  cogl_framebuffer_set_modelview_matrix (lnode->offscreen, &matrix);
-
-  cogl_framebuffer_set_viewport (lnode->offscreen,
-                                 lnode->viewport.x,
-                                 lnode->viewport.y,
-                                 lnode->viewport.width,
-                                 lnode->viewport.height);
-
-  cogl_framebuffer_set_projection_matrix (lnode->offscreen,
-                                          &lnode->projection);
 
   /* clear out the target framebuffer */
   cogl_framebuffer_clear4f (lnode->offscreen,
@@ -1521,6 +1525,7 @@ clutter_layer_node_new (const CoglMatrix        *projection,
 
   res = _clutter_paint_node_create (CLUTTER_TYPE_LAYER_NODE);
 
+  res->update_modelview = TRUE;
   res->projection = *projection;
   res->viewport = *viewport;
   res->fbo_width = width;
@@ -1558,6 +1563,45 @@ clutter_layer_node_new (const CoglMatrix        *projection,
 
 out:
   cogl_object_unref (texture);
+
+  return (ClutterPaintNode *) res;
+}
+
+/**
+ * clutter_layer_node_new_with_framebuffer:
+ * @framebuffer: a #CoglFramebuffer
+ * @pipeline: a #CoglPipeline
+ * @opacity: the opacity to be used when drawing the layer
+ *
+ * Creates a new #ClutterLayerNode with @framebuffer and
+ * @pipeline. @framebuffer will then be painted using the
+ * given @opacity.
+ *
+ * When using this constructor, the caller is responsible
+ * for setting up the framebuffer's modelview and projection
+ * matrices.
+ *
+ * Return value: (transfer full)(nullable): the newly created #ClutterLayerNode.
+ *   Use clutter_paint_node_unref() when done.
+ */
+ClutterPaintNode *
+clutter_layer_node_new_with_framebuffer (CoglFramebuffer *framebuffer,
+                                         CoglPipeline    *pipeline,
+                                         guint8           opacity)
+{
+  ClutterLayerNode *res;
+  CoglColor color;
+
+  g_return_val_if_fail (cogl_is_framebuffer (framebuffer), NULL);
+
+  res = _clutter_paint_node_create (CLUTTER_TYPE_LAYER_NODE);
+
+  res->update_modelview = FALSE;
+  res->offscreen = cogl_object_ref (framebuffer);
+  res->pipeline = cogl_pipeline_copy (pipeline);
+
+  cogl_color_init_from_4ub (&color, opacity, opacity, opacity, opacity);
+  cogl_pipeline_set_color (res->pipeline, &color);
 
   return (ClutterPaintNode *) res;
 }

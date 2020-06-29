@@ -209,6 +209,11 @@ ClutterPaintNode *      clutter_layer_node_new          (const CoglMatrix       
                                                          float                    height,
                                                          guint8                   opacity);
 
+CLUTTER_EXPORT
+ClutterPaintNode * clutter_layer_node_new_with_framebuffer (CoglFramebuffer *framebuffer,
+                                                            CoglPipeline    *pipeline,
+                                                            guint8           opacity);
+
 
 #define CLUTTER_TYPE_TRANSFORM_NODE             (clutter_transform_node_get_type ())
 #define CLUTTER_TRANSFORM_NODE(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), CLUTTER_TYPE_TRANSFORM_NODE, ClutterTransformNode))
