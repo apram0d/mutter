@@ -279,7 +279,20 @@ endif
 
 have_profiler = get_option('profiler')
 if have_profiler
-  sysprof_dep = dependency('sysprof-capture-3', version: sysprof_req)
+  # libsysprof-capture support
+  sysprof_dep = dependency('sysprof-capture-4',
+    required: true,
+    default_options: [
+      'enable_examples=false',
+      'enable_gtk=false',
+      'enable_tests=false',
+      'enable_tools=false',
+      'libsysprof=false',
+      'with_sysprofd=none',
+      'help=false',
+    ],
+    fallback: ['sysprof', 'libsysprof_capture_dep'],
+  )
 endif
 
 required_functions = [
