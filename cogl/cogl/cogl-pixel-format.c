@@ -350,6 +350,13 @@ static const CoglPixelFormatInfo format_info_table[] = {
     .aligned = 1,
     .bpp = { 4 },
   },
+  {
+    .cogl_format = COGL_PIXEL_FORMAT_P010,
+    .format_str = "YUV420P10",
+    .n_planes = 2,
+    .aligned = 0,
+    .bpp = { 32 },
+  },
 };
 
 int
