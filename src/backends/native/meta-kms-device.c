@@ -282,6 +282,23 @@ meta_kms_device_update_states_in_impl (MetaKmsDevice *device,
   return changes;
 }
 
+#if 1
+void
+meta_kms_device_update_states_in_impl_for_global_hist_event (MetaKmsDevice *device,
+                                       uint32_t       crtc_id,
+                                       uint32_t       connector_id)
+{
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Entry\n", __func__,__LINE__);
+  MetaKmsImplDevice *impl_device = meta_kms_device_get_impl_device (device);
+
+  meta_assert_in_kms_impl (device->kms);
+  meta_assert_is_waiting_for_kms_impl_task (device->kms);
+
+  meta_kms_impl_device_update_states_for_global_hist_event (impl_device, crtc_id, connector_id);
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Exit\n", __func__,__LINE__);
+}
+#endif
+
 typedef struct
 {
   MetaKmsUpdate *update;

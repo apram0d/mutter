@@ -43,6 +43,8 @@ MetaKmsCrtc * meta_kms_crtc_new (MetaKmsImplDevice  *impl_device,
 
 MetaKmsUpdateChanges meta_kms_crtc_update_state (MetaKmsCrtc *crtc);
 
+void meta_kms_crtc_update_state_for_global_hist_event(MetaKmsCrtc *crtc);
+
 void meta_kms_crtc_disable (MetaKmsCrtc *crtc);
 
 void meta_kms_crtc_predict_state (MetaKmsCrtc   *crtc,

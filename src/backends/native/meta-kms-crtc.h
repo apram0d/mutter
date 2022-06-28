@@ -83,5 +83,10 @@ MetaKmsCrtcGamma * meta_kms_crtc_gamma_new (MetaKmsCrtc    *crtc,
                                             const uint16_t *red,
                                             const uint16_t *green,
                                             const uint16_t *blue);
-
+#if 0
+void
+meta_kms_device_update_states_in_impl_for_global_hist_event (MetaKmsDevice *device,
+                                       uint32_t       crtc_id,
+                                       uint32_t       connector_id);
+#endif
 #endif /* META_KMS_CRTC_H */

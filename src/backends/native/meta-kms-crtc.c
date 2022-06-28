@@ -277,7 +277,84 @@ out:
 
   return changes;
 }
+#if 1
+void 
+meta_kms_crtc_update_state_for_global_hist_event(MetaKmsCrtc *crtc)
+{
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] [%s:%d] Entry\n", __func__,__LINE__);
+  MetaKmsImplDevice *impl_device;
+  MetaKmsUpdateChanges changes =0 ;
+  int fd;
+  drmModeCrtc *drm_crtc;
+  drmModeObjectProperties *drm_props;
 
+  impl_device = meta_kms_device_get_impl_device (crtc->device);
+  fd = meta_kms_impl_device_get_fd (impl_device);
+
+  drm_crtc = drmModeGetCrtc (fd, crtc->id);
+  drm_props = drmModeObjectGetProperties (fd, crtc->id, DRM_MODE_OBJECT_CRTC);
+  if (!drm_crtc || !drm_props)
+    {
+      crtc->current_state.is_active = FALSE;
+      crtc->current_state.rect = (MetaRectangle) { };
+      crtc->current_state.is_drm_mode_valid = FALSE;
+      changes = META_KMS_UPDATE_CHANGE_FULL;
+      goto out;
+    }
+/*
+ * Iterate throgh all the CRTC properties to get GLOBAL_HIST related DRM Properties
+ *
+*/
+ drmModePropertyPtr prop;
+ drmModePropertyBlobPtr global_hist_blob = NULL;
+ uint32_t blob_id;
+ uint32_t global_hist_flag =0;
+ uint32_t global_iet_prop_id =0;
+ for (int i=0;i<drm_props->count_props;i++)
+ {
+   prop = drmModeGetProperty (fd, drm_props->props[i]);
+   if (!prop)
+      continue;
+   if(strcmp(prop->name, "GLOBAL_HIST_EN")==0 && prop->enums->value == 1){
+     global_hist_flag = 1;
+     fprintf(stderr, "[GLOBAL_HIST_EVENT] GLOBAL_HIST details[Name:%s, Value:%lld]\n", prop->name, prop->enums->value);
+     continue;
+   }
+   if (prop->flags & DRM_MODE_PROP_BLOB)
+   {
+      blob_id = drm_props->prop_values[i];
+      if (blob_id)
+      {
+         if (strcmp (prop->name, "Global Histogram") == 0 && global_hist_flag){
+            fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d Global Histogram [Name:%s Blob_id=%d] \n", __func__,__LINE__, prop->name, blob_id);
+            global_hist_blob = drmModeGetPropertyBlob (fd, blob_id);
+            if (!global_hist_blob)
+            {
+               g_warning ("Failed to read GLOBAL_HIST blob of crtc %d: %s", blob_id, g_strerror (errno));
+               break;
+            }
+            break;
+         }else if(strcmp(prop->name, "Global IET")==0)
+         {
+                 global_iet_prop_id = prop->prop_id;
+                 fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d GLOBAL_HIST Pixel Factor [Name:%s Blob_id=%d prop_id=%d] \n", __func__,__LINE__, prop->name, blob_id, global_iet_prop_id);
+                 continue;
+         }
+        continue;
+      }
+   }
+ }
+
+out:
+/*
+ * In all error cases let's get out of this function
+*/
+  g_clear_pointer (&drm_props, drmModeFreeObjectProperties);
+  g_clear_pointer (&drm_crtc, drmModeFreeCrtc);
+
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] [%s:%d] Exit label 'out'\n", __func__,__LINE__);
+}
+#endif
 void
 meta_kms_crtc_disable (MetaKmsCrtc *crtc)
 {

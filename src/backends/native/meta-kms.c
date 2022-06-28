@@ -658,12 +658,94 @@ handle_hotplug_event (MetaKms              *kms,
 }
 #if 1
 static void
+meta_kms_update_states_in_impl_for_global_hist_event (MetaKms          *kms,
+                                UpdateStatesData *update_data)
+{
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Entry\n", __func__,__LINE__);
+  MetaKmsUpdateChanges changes = META_KMS_UPDATE_CHANGE_NONE;
+  GList *l;
+
+  COGL_TRACE_BEGIN_SCOPED (MetaKmsUpdateStates,
+                           "KMS (update states)");
+
+  meta_assert_in_kms_impl (kms);
+
+  if (!kms->devices)
+    return ;
+
+  for (l = kms->devices; l; l = l->next)
+    {
+      MetaKmsDevice *kms_device = META_KMS_DEVICE (l->data);
+      const char *kms_device_path = meta_kms_device_get_path (kms_device);
+
+      if (update_data->device_path &&
+          g_strcmp0 (kms_device_path, update_data->device_path) != 0)
+        continue;
+
+      if (update_data->crtc_id > 0 &&
+          !meta_kms_device_find_crtc_in_impl (kms_device, update_data->crtc_id))
+        continue;
+
+      if (update_data->connector_id > 0 &&
+          !meta_kms_device_find_connector_in_impl (kms_device,
+                                                   update_data->connector_id))
+        continue;
+
+        meta_kms_device_update_states_in_impl_for_global_hist_event (kms_device,
+                                               update_data->crtc_id,
+                                               update_data->connector_id);
+      break;
+    }
+
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Exit\n", __func__,__LINE__);
+}
+
+
+static void
+update_states_in_impl_for_global_hist_event (MetaKmsImpl  *impl,
+                       gpointer      user_data,
+                       GError      **error)
+{
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Entry\n", __func__,__LINE__);
+  UpdateStatesData *data = user_data;
+  MetaKms *kms = meta_kms_impl_get_kms (impl);
+
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Entry\n", __func__,__LINE__);
+  meta_kms_update_states_in_impl_for_global_hist_event (kms, data);
+}
+
+void
+meta_kms_update_states_sync_for_global_hist_event (MetaKms     *kms,
+                             GUdevDevice *udev_device)
+{
+  fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Entry\n", __func__,__LINE__);
+  UpdateStatesData data = {};
+  gpointer ret=1;
+#if 1
+  if (udev_device)
+    {
+      data.device_path = g_udev_device_get_device_file (udev_device);
+      data.crtc_id =
+        CLAMP (g_udev_device_get_property_as_int (udev_device, "CRTC"),
+               0, UINT32_MAX);
+      data.connector_id =
+        CLAMP (g_udev_device_get_property_as_int (udev_device, "CONNECTOR"),
+               0, UINT32_MAX);
+    }
+   ret = meta_kms_run_impl_task_sync(kms, update_states_in_impl_for_global_hist_event, &data, NULL);
+#endif
+   fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Exit\n", __func__,__LINE__);
+}
+
+static void
 handle_global_hist_event (MetaKms *kms)
 {
   fprintf(stderr, "[GLOBAL_HIST-EVENT] %s:%d-> Entry\n", __func__,__LINE__);
   g_autoptr (GError) error = NULL;
-
-  g_signal_emit (kms, signals[GLOBAL_HIST], 0);
+  if(kms){
+  	meta_kms_update_states_sync_for_global_hist_event (kms, &error);
+	g_signal_emit (kms, signals[GLOBAL_HIST], 0);
+  }
   fprintf(stderr, "[GLOBAL_HIST-EVENT] %s:%d-> Exit\n", __func__,__LINE__);
 }
 
