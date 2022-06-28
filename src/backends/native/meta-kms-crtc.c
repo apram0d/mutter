@@ -390,6 +390,21 @@ init_properties (MetaKmsCrtc       *crtc,
           .name = "GAMMA_LUT",
           .type = DRM_MODE_PROP_BLOB,
         },
+      [META_KMS_CRTC_PROP_GLOBAL_HIST_EN] =
+        {
+          .name = "GLOBAL_HIST_EN",
+          .type = DRM_MODE_PROP_ENUM,
+        },
+      [META_KMS_CRTC_PROP_Global_Histogram] =
+        {
+          .name = "Global Histogram",
+          .type = DRM_MODE_PROP_BLOB,
+        },
+      [META_KMS_CRTC_PROP_Global_IET] =
+        {
+          .name = "Global IET",
+          .type = DRM_MODE_PROP_BLOB,
+        },
     }
   };
 
