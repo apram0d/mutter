@@ -32,6 +32,7 @@ enum
   HOTPLUG,
   DEVICE_ADDED,
   DEVICE_REMOVED,
+  GLOBAL_HIST,
 
   N_SIGNALS
 };
@@ -216,6 +217,11 @@ on_uevent (GUdevClient *client,
 
   if (g_udev_device_get_property_as_boolean (device, "HOTPLUG"))
     g_signal_emit (udev, signals[HOTPLUG], 0, device);
+
+  if (g_udev_device_get_property_as_boolean (device, "GLOBAL_HIST")){
+	fprintf(stderr,"[GLOBAL_HIST-EVENT] %s:%d About to Emit signal for GLOBAL_HIST\n", __func__,__LINE__);	  
+	g_signal_emit (udev, signals[GLOBAL_HIST], 0, device);
+  }
 }
 
 MetaUdev *
@@ -291,4 +297,11 @@ meta_udev_class_init (MetaUdevClass *klass)
                   0, NULL, NULL, NULL,
                   G_TYPE_NONE, 1,
                   G_UDEV_TYPE_DEVICE);
+   signals[GLOBAL_HIST] =
+    g_signal_new ("GLOBAL_HIST",
+                  G_TYPE_FROM_CLASS (object_class),
+                  G_SIGNAL_RUN_LAST,
+                  0, NULL, NULL, NULL,
+                  G_TYPE_NONE, 0);
+ 
 }
