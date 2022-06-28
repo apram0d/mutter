@@ -126,6 +126,7 @@
 enum
 {
   RESOURCES_CHANGED,
+  GLOBAL_HIST=3,
 
   N_SIGNALS
 };
@@ -166,6 +167,8 @@ struct _MetaKms
 
   gulong hotplug_handler_id;
   gulong removed_handler_id;
+
+  gulong global_hist_handler_id;
 
   MetaKmsImpl *impl;
   gboolean in_impl_task;
@@ -653,6 +656,27 @@ handle_hotplug_event (MetaKms              *kms,
   if (changes != META_KMS_UPDATE_CHANGE_NONE)
     g_signal_emit (kms, signals[RESOURCES_CHANGED], 0, changes);
 }
+#if 1
+static void
+handle_global_hist_event (MetaKms *kms)
+{
+  fprintf(stderr, "[GLOBAL_HIST-EVENT] %s:%d-> Entry\n", __func__,__LINE__);
+  g_autoptr (GError) error = NULL;
+
+  g_signal_emit (kms, signals[GLOBAL_HIST], 0);
+  fprintf(stderr, "[GLOBAL_HIST-EVENT] %s:%d-> Exit\n", __func__,__LINE__);
+}
+
+static void
+on_udev_global_hist (MetaUdev *udev,
+                 MetaKms  *kms)
+{
+  fprintf(stderr, "[GLOBAL_HIST-EVENT] %s:%d-> Entry \n", __func__,__LINE__);
+  handle_global_hist_event (kms);
+  fprintf(stderr, "[GLOBAL_HIST-EVENT] %s:%d-> Exit\n", __func__,__LINE__);
+}
+#endif //GLOBAL_HIST event handling
+
 
 void
 meta_kms_resume (MetaKms *kms)
@@ -736,6 +760,8 @@ meta_kms_new (MetaBackend   *backend,
   kms->removed_handler_id =
     g_signal_connect (udev, "device-removed",
                       G_CALLBACK (on_udev_device_removed), kms);
+
+  kms->global_hist_handler_id = g_signal_connect(udev, "GLOBAL_HIST", G_CALLBACK(on_udev_global_hist), kms);
 
   return kms;
 }
