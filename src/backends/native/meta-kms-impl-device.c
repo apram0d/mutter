@@ -777,6 +777,41 @@ err:
 
   return META_KMS_UPDATE_CHANGE_FULL;
 }
+#if 1
+void
+meta_kms_impl_device_update_states_for_global_hist_event (MetaKmsImplDevice *impl_device,
+                                    uint32_t           crtc_id,
+                                    uint32_t           connector_id)
+{
+ fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Entry \n", __func__,__LINE__);
+ GList *l;
+ MetaKmsImplDevicePrivate *priv = meta_kms_impl_device_get_instance_private (impl_device);
+  g_autoptr (GError) error = NULL;
+  int fd;
+  meta_assert_in_kms_impl (meta_kms_impl_get_kms (priv->impl));
+  if (!ensure_device_file (impl_device, &error))
+  {
+      g_warning ("Failed to reopen '%s': %s", priv->path, error->message);
+  }
+  ensure_latched_fd_hold (impl_device);
+
+  fd = meta_device_file_get_fd (priv->device_file);
+   for (l = priv->crtcs; l; l = l->next)
+    {
+      MetaKmsCrtc *crtc = META_KMS_CRTC (l->data);
+
+      if (crtc_id > 0 &&
+          meta_kms_crtc_get_id (crtc) != crtc_id)
+        continue;
+      fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> [CRTC  id=%d]\n", __func__,__LINE__, meta_kms_crtc_get_id (crtc));
+      meta_kms_crtc_update_state_for_global_hist_event (crtc);
+      break;
+    }
+ fprintf(stderr, "[GLOBAL_HIST_EVENT] %s:%d-> Exit\n", __func__,__LINE__);
+}
+
+#endif
+
 
 static void
 meta_kms_impl_device_predict_states (MetaKmsImplDevice *impl_device,
