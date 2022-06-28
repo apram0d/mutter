@@ -26,6 +26,7 @@
 #include "backends/native/meta-kms-impl-device.h"
 #include "backends/native/meta-kms-mode.h"
 #include "backends/native/meta-kms-update-private.h"
+#include "backends/native/DisplayPc.h"
 
 typedef struct _MetaKmsCrtcPropTable
 {
@@ -344,6 +345,56 @@ meta_kms_crtc_update_state_for_global_hist_event(MetaKmsCrtc *crtc)
       }
    }
  }
+#if 1 
+/*
+ * Let's invoke GHE Algorithm API to get IET LUT values and new Brightness value:*
+*/
+ GlobalHist_ARGS *args_ptr = (GlobalHist_ARGS *) malloc(sizeof(GlobalHist_ARGS));
+ uint32_t Histogram[GlobalHist_BIN_COUNT] , *Histogram_ptr;
+ uint32_t Histogram_dest[GlobalHist_BIN_COUNT];
+ if(global_hist_blob)
+        Histogram_ptr = (uint32_t *) global_hist_blob->data;
+ else
+        goto out;
+ for(int i =0; i<GlobalHist_BIN_COUNT; i++)
+ {
+    Histogram[i]= *(Histogram_ptr + i);
+    fprintf(stderr, "[GHE-MW]Histogram[%d] = 0x%x \n", i, Histogram[i]);
+ }
+ args_ptr->Resolution_X =drm_crtc->width;
+ args_ptr->Resolution_Y =drm_crtc->height;
+ fprintf(stderr, "[GHE-ALGO] Making call to GHE Algo API: \n");
+
+ SetHistogramDataBin(args_ptr);
+
+ uint32_t global_iet_factor[GlobalHist_IET_LUT_LENGTH];
+ fprintf(stderr, "[ALGO-IET] %s:%d START:\n", __func__,__LINE__);
+ for(int i=0; i<GlobalHist_IET_LUT_LENGTH; i++){
+    global_iet_factor[i]=args_ptr->DietFactor[i];
+    fprintf(stderr," IET[%d]:0x%x\n", i,args_ptr->DietFactor[i]);
+ }
+ uint32_t blob_id_global_iet_factor;
+ int ret = drmModeCreatePropertyBlob(fd, global_iet_factor, sizeof(global_iet_factor), &blob_id_global_iet_factor);
+ if(ret < 0)
+   fprintf(stderr," [GHE-MW] Failed to create Blob property for GHE Pixel Factor\n");
+
+ uint32_t temp_prop_id = meta_kms_crtc_get_prop_id (crtc, META_KMS_CRTC_PROP_Global_IET);
+ fprintf(stderr," [GHE-MW] GHE PIXEL FACTOR ID[temp_prop_id=%d] \n", temp_prop_id);
+
+ fprintf(stderr," [GHE-MW] GHE PIXEL FACTOR ID[global_iet_prop_id = %d] \n", global_iet_prop_id);
+
+ drmModeAtomicReq *req;
+
+ req = drmModeAtomicAlloc ();
+ ret = drmModeAtomicAddProperty(req, meta_kms_crtc_get_id(crtc), temp_prop_id, blob_id_global_iet_factor);
+
+ if(ret < 0){
+          fprintf(stderr,"[GHE-MW]  Failed to add CRTC property for GHE_Pixel_Factor\n");
+  }
+ fprintf(stderr,"[GHE-MW] SUCCESSFULLY UPDATED GHE PIXEL FACTOR \n");
+
+ fprintf(stderr, "[GHE-MW] [%s:%d] Exit \n", __func__,__LINE__);
+#endif
 
 out:
 /*

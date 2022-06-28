@@ -108,6 +108,7 @@ gdk_pixbuf_dep = dependency('gdk-pixbuf-2.0')
 pango_dep = dependency('pango', version: pango_req)
 cairo_dep = dependency('cairo', version: cairo_req)
 cairo_gobject_dep = dependency('cairo-gobject', version: cairo_req)
+libGHE_dep = dependency('libGHE')
 pangocairo_dep = dependency('pangocairo', version: pangocairo_req)
 fribidi_dep = dependency('fribidi', version: fribidi_req)
 gsettings_desktop_schemas_dep = dependency('gsettings-desktop-schemas',
