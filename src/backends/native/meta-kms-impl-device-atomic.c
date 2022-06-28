@@ -273,6 +273,28 @@ process_mode_set (MetaKmsImplDevice  *impl_device,
   MetaKmsModeSet *mode_set = update_entry;
   MetaKmsCrtc *crtc = mode_set->crtc;
   MetaKmsMode *mode;
+#if 1
+  GList *l;
+  for (l = meta_kms_impl_device_peek_connectors (impl_device); l; l = l->next)
+  {
+    MetaKmsConnector *connector = l->data;
+    uint32_t con_type=meta_kms_connector_get_connector_type(connector);
+    MetaKmsConnectorState *con_state = meta_kms_connector_get_current_state(connector);
+    uint32_t current_crtc_id = con_state->current_crtc_id;
+    if ((con_type == META_CONNECTOR_TYPE_eDP) && ( current_crtc_id == meta_kms_crtc_get_id(crtc)) ){
+             if (!add_crtc_property (impl_device,
+                                       crtc, req,
+                                       META_KMS_CRTC_PROP_GLOBAL_HIST_EN,
+                                       1,
+                                       error)){
+                       fprintf(stderr, "[GLOBAL_HIST_EN] %s:%d-> add_crtc_property () FAILED \n", __func__,__LINE__);
+                      break;
+            }
+       fprintf(stderr, "[GLOBAL_HIST_EN] %s:%d-> Enabling GLOBAL_HIST SUCCEEDED \n", __func__,__LINE__);
+       break;
+    }
+  }
+#endif
 
   mode = (MetaKmsMode *) mode_set->mode;
   if (mode)
