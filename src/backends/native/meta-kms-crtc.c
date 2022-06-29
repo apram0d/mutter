@@ -278,6 +278,10 @@ out:
   return changes;
 }
 #if 1
+#include "backends/native/DisplayPcDpst.h"
+#define BACKLIGHT_PATH "/sys/class/backlight/intel_backlight/brightness"
+#define DPST_AGGRESSIVENESS_LEVEL 5
+
 void 
 meta_kms_crtc_update_state_for_global_hist_event(MetaKmsCrtc *crtc)
 {
@@ -344,6 +348,55 @@ meta_kms_crtc_update_state_for_global_hist_event(MetaKmsCrtc *crtc)
       }
    }
  }
+/*
+ * Let's invoke Global_hist Algorithm API to get IET LUT values and new Brightness value:*
+*/
+ DD_DPST_ARGS  *args_ptr = (DD_DPST_ARGS *) malloc(sizeof(DD_DPST_ARGS));
+ uint32_t Histogram[DPST_BIN_COUNT] , *Histogram_ptr;
+ uint32_t Histogram_dest[DPST_BIN_COUNT];
+ if (global_hist_blob){
+	Histogram_ptr = (uint32_t *) global_hist_blob->data;
+ }else
+	 goto out;
+ for (int i=0; i<DPST_BIN_COUNT; i++){
+	 Histogram[i]=*(Histogram_ptr + i);
+	 fprintf(stderr, "[Global_Hidt_Blob] Histogram[%d] = 0x%x\n", i, Histogram[i]);
+ }
+ args_ptr->Aggressiveness_Level = DPST_AGGRESSIVENESS_LEVEL;
+ args_ptr->Resolution_X =drm_crtc->width;
+ args_ptr->Resolution_Y =drm_crtc->height;
+ fprintf(stderr, "[Global_Hist-ALGO] Making call to DPST Algo API: \n");
+
+ SetHistogramDataBin(args_ptr);
+
+ uint32_t brightness_val=0;
+ uint32_t DietFactor[DPST_IET_LUT_LENGTH];
+ brightness_val = args_ptr->Backlight_level;
+ fprintf(stderr, "[Global_Hist] [Backlight new Value:%d]\n", brightness_val);
+ fprintf(stderr, "[Global_IET] %s:%d START:\n", __func__,__LINE__);
+
+ for(int i=0; i<DPST_IET_LUT_LENGTH; i++){
+    DietFactor[i]=args_ptr->DietFactor[i];
+    fprintf(stderr," IET[%d]:0x%x\n", i,args_ptr->DietFactor[i]);
+ }
+ uint32_t blob_id_eit_factor;
+ int ret = drmModeCreatePropertyBlob(fd, DietFactor, sizeof(DietFactor), &blob_id_eit_factor);
+ if(ret < 0)
+   fprintf(stderr," [Global_Hist] Failed to create Blob property for Global_hist Pixel Factor\n");
+ 
+ uint32_t temp_prop_id = meta_kms_crtc_get_prop_id (crtc, META_KMS_CRTC_PROP_Global_IET);
+ fprintf(stderr," [Global_IET] Global_IET ID[temp_prop_id=%d] \n", temp_prop_id);
+
+
+ drmModeAtomicReq *req;
+ req = drmModeAtomicAlloc ();
+ ret = drmModeAtomicAddProperty(req, meta_kms_crtc_get_id(crtc), temp_prop_id, blob_id_eit_factor);
+ if(ret < 0){
+          fprintf(stderr,"[Global_hist]  Failed to add CRTC property for Global_hist_Pixel_Factor\n");
+  }
+ fprintf(stderr,"[Global_hist] SUCCESSFULLY UPDATED Global_hist PIXEL FACTOR \n");
+
+ fprintf(stderr, "[Global_hist] [%s:%d] Exit \n", __func__,__LINE__);
 
 out:
 /*
