@@ -279,8 +279,114 @@ out:
 }
 #if 1
 #include "backends/native/DisplayPcDpst.h"
-#define BACKLIGHT_PATH "/sys/class/backlight/intel_backlight/brightness"
+#define BACKLIGHT_PATH "/sys/class/backlight/intel_backlight"
+#define CURRENT_BACKLIGHT_SYSFS "/sys/class/backlight/intel_backlight/brightness"
+#define MAX_BRIGHTNESS_SYSFS "/sys/class/backlight/intel_backlight/max_brightness"
 #define DPST_AGGRESSIVENESS_LEVEL 5
+
+gint get_cur_brightness_per(){
+
+  gint current_brightness=0;
+  gchar* contents=NULL;
+  gint current_percent=0;
+  if (g_file_get_contents(CURRENT_BACKLIGHT_SYSFS,&contents,NULL,NULL))
+  current_brightness = atoi(contents);
+  g_free(contents);
+  current_percent = ((gfloat)current_brightness / 512)*100;
+
+  return current_percent;
+}
+/*
+* using gdbus interface org.gnome.SettingsDaemon.Power.Screen
+* the method StepDown will default reduce the backlight by 5%
+* @int steps: each step will reduce the brightness by 5%
+* @boolean direction: 1 for UP and 0 for DOWN
+*/
+gboolean stepping_set_backlight(gint steps, gboolean direction){
+  GError* dbus_error = NULL;
+  GDBusConnection* connection = NULL;
+  GDBusProxy *proxy = NULL;
+  const gchar *method = NULL;
+
+  method = direction ? "StepUp": "StepDown";
+
+  fprintf(stderr, "%s , step count: %d \n",method,steps);
+
+  connection = g_bus_get_sync(G_BUS_TYPE_SESSION,NULL,&dbus_error);
+  proxy = g_dbus_proxy_new_sync(connection,
+                G_DBUS_PROXY_FLAGS_NONE,
+                NULL,
+                "org.gnome.SettingsDaemon.Power",
+                "/org/gnome/SettingsDaemon/Power",
+                "org.gnome.SettingsDaemon.Power.Screen",
+                NULL,
+                &dbus_error
+              );
+    if (dbus_error){
+      fprintf(stderr,"Error: %s \n ",dbus_error->message);
+      g_error_free(dbus_error);
+      return false;
+    }
+    while(steps > 0){
+      // fprintf(stderr,"Stepping %s count: %d \n",method,steps);
+      g_dbus_proxy_call_sync(proxy,method,
+                      NULL,G_DBUS_CALL_FLAGS_NONE,
+                      -1,NULL,&dbus_error);
+      if (dbus_error){
+          printf("\n error : %s",dbus_error->message);
+          g_error_free(dbus_error);
+          return false;
+      }
+      // fprintf(stderr,"Current percentage: %d %% \n",get_cur_brightness_per());
+      //delay for 0.01 sec for not immediate UX reaction
+      g_usleep(10000);
+      steps--;
+    }
+
+  g_object_unref(connection);
+  g_object_unref(proxy);
+
+  return true;
+
+}
+gboolean global_hist_set_backlight(uint32_t brightness_factor){
+  gint current_brightness=0;
+  gint max_brightness=0;
+  gchar *contents;
+  gint new_brightness;
+  gint current_percent=0;
+  gint steps;
+  gboolean direction=true;
+  gint brightness_val;
+  brightness_val = (gint) round((gfloat) brightness_factor/100);
+
+  if (g_file_get_contents(CURRENT_BACKLIGHT_SYSFS,&contents,NULL,NULL))
+    current_brightness = atoi(contents);
+
+  if (g_file_get_contents(MAX_BRIGHTNESS_SYSFS,&contents,NULL,NULL))
+    max_brightness = atoi(contents);
+
+  g_free(contents);
+  current_percent = ((gfloat)current_brightness / max_brightness)*100;
+  fprintf(stderr,"Current Brightness Percentage: %d %% \n",current_percent);
+  if ( current_brightness && max_brightness ){
+    fprintf(stderr,"DPST Target brightness factor: %d %% \n",brightness_val);
+    fprintf(stderr,"Max Brightness: %d \nCurrent Brightness: %d \n",max_brightness, current_brightness);
+
+    new_brightness = (max_brightness * brightness_val)/100;
+
+    fprintf(stderr,"New brightness value: %d \n",new_brightness);
+    if ( new_brightness > current_brightness){
+      steps = (brightness_val - current_percent)/5;
+      return stepping_set_backlight(steps,direction);
+    }
+    else{
+      steps = (current_percent - brightness_val)/5;
+      return stepping_set_backlight(steps,!direction);
+    }
+  }
+  return false;
+}
 
 void 
 meta_kms_crtc_update_state_for_global_hist_event(MetaKmsCrtc *crtc)
@@ -398,6 +504,8 @@ meta_kms_crtc_update_state_for_global_hist_event(MetaKmsCrtc *crtc)
 
  fprintf(stderr, "[Global_hist] [%s:%d] Exit \n", __func__,__LINE__);
 
+ if (global_hist_set_backlight(brightness_val))
+    fprintf(stderr,"[Global_hist] Backlight change success \n");
 out:
 /*
  * In all error cases let's get out of this function
