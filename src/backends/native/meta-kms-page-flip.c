@@ -165,8 +165,6 @@ invoke_page_flip_closure_flipped (MetaThread *thread,
   MetaKmsPageFlipClosure *closure = user_data;
   MetaKmsPageFlipData *page_flip_data = closure->page_flip_data;
 
-  meta_assert_not_in_kms_impl (META_KMS (thread));
-
   if (page_flip_data->is_symbolic)
     {
       closure->vtable->ready (page_flip_data->crtc,
@@ -250,8 +248,6 @@ invoke_page_flip_closure_mode_set_fallback (MetaThread *thread,
   MetaKmsPageFlipClosure *closure = user_data;
   MetaKmsPageFlipData *page_flip_data = closure->page_flip_data;
 
-  meta_assert_not_in_kms_impl (META_KMS (thread));
-
   closure->vtable->mode_set_fallback (page_flip_data->crtc,
                                       closure->user_data);
 }
@@ -287,8 +283,6 @@ invoke_page_flip_closure_discarded (MetaThread *thread,
 {
   MetaKmsPageFlipClosure *closure = user_data;
   MetaKmsPageFlipData *page_flip_data = closure->page_flip_data;
-
-  meta_assert_not_in_kms_impl (META_KMS (thread));
 
   closure->vtable->discarded (page_flip_data->crtc,
                               closure->user_data,
