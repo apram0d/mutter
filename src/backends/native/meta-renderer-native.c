@@ -876,6 +876,7 @@ post_mode_set_updates (MetaRendererNative *renderer_native)
       meta_kms_update_add_result_listener (kms_update,
                                            &mode_sets_result_listener_vtable,
                                            NULL,
+                                           NULL,
                                            NULL);
 
       feedback = meta_kms_device_process_update_sync (kms_device, kms_update,
