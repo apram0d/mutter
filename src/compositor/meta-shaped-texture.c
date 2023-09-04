@@ -1608,11 +1608,8 @@ get_unscaled_size (MetaShapedTexture *stex)
 float
 meta_shaped_texture_get_unscaled_width (MetaShapedTexture *stex)
 {
-  graphene_size_t unscaled_size;
-
   g_return_val_if_fail (META_IS_SHAPED_TEXTURE (stex), 0);
-
-  unscaled_size = get_unscaled_size (stex);
+  graphene_size_t unscaled_size = get_unscaled_size (stex);
 
   return unscaled_size.width;
 }
@@ -1626,11 +1623,8 @@ meta_shaped_texture_get_unscaled_width (MetaShapedTexture *stex)
 float
 meta_shaped_texture_get_unscaled_height (MetaShapedTexture *stex)
 {
-  graphene_size_t unscaled_size;
-
   g_return_val_if_fail (META_IS_SHAPED_TEXTURE (stex), 0);
-
-  unscaled_size = get_unscaled_size (stex);
+  graphene_size_t unscaled_size = get_unscaled_size (stex);
 
   return unscaled_size.height;
 }
